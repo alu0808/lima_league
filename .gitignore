@@ -1,0 +1,71 @@
+# --- Python básico ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+*.pyo
+
+# --- Entornos virtuales ---
+.venv/
+venv/
+env/
+ENV/
+pip-wheel-metadata/
+.python-version
+
+# --- Variables de entorno / secretos ---
+.env
+.env.*
+!.env.example
+
+# --- Django ---
+# Logs y archivos generados
+*.log
+
+# Salida de collectstatic (no subas artefactos compilados)
+staticfiles/
+
+# (Opcional) si generas media local en dev y no quieres subirlo:
+# media/
+
+# Bases de datos locales
+db.sqlite3
+*.sqlite3
+*.sqlite
+
+# Migraciones: ¡NO ignorarlas!
+# (solo ignoramos caches dentro de migrations)
+*/migrations/__pycache__/
+
+# --- Tests / coverage ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+
+# --- Tipado / análisis estático ---
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+
+# --- Build / empaquetado ---
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- IDE / Editor ---
+.idea/
+.vscode/
+*.code-workspace
+
+# --- SO ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Otros caches comunes ---
+.cache/
