@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 from datetime import timedelta
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -79,11 +80,34 @@ TEMPLATES = [{
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-db_url = os.getenv("DATABASE_URL")
+db_url = (os.getenv("DATABASE_URL") or "").strip()      # ← puede venir "" y eso cuenta como vacío
+pg_db  = (os.getenv("PGDATABASE") or "").strip()
+
 if db_url:
-    # Usa la URL completa (ssl + pool)
+    parsed = dj_database_url.parse(db_url, conn_max_age=600, ssl_require=True)
+    if not parsed.get("ENGINE"):
+        raise ImproperlyConfigured("DATABASE_URL inválida o vacía: falta ENGINE")
+    DATABASES = {"default": parsed}
+
+elif pg_db:
     DATABASES = {
-        "default": dj_database_url.parse(db_url, conn_max_age=600, ssl_require=True)
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": pg_db,
+            "USER": os.getenv("PGUSER"),
+            "PASSWORD": os.getenv("PGPASSWORD"),
+            "HOST": os.getenv("PGHOST"),
+            "PORT": os.getenv("PGPORT", "5432"),
+            "OPTIONS": {"sslmode": "require"},
+        }
+    }
+
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
 
 AUTH_USER_MODEL = "accounts.User"
