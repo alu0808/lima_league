@@ -53,6 +53,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -78,24 +79,10 @@ TEMPLATES = [{
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-PGDATABASE = os.getenv("PGDATABASE")
-if PGDATABASE:
+db_url = os.getenv("DATABASE_URL")
+if db_url:
     DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": PGDATABASE,
-            "USER": os.getenv("PGUSER"),
-            "PASSWORD": os.getenv("PGPASSWORD"),
-            "HOST": os.getenv("PGHOST"),
-            "PORT": os.getenv("PGPORT", "5432"),
-        }
-    }
-else:
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR/'db.sqlite3'}"),
-            conn_max_age=600,
-        )
+        "default": dj_database_url.config(conn_max_age=600, ssl_require=True)
     }
 
 AUTH_USER_MODEL = "accounts.User"
