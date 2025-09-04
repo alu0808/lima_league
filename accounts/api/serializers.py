@@ -9,6 +9,7 @@ from accounts.models import (
     DocumentType, City, District, FootballPosition, DominantFoot,
     TermsAndConditions, UserTermsAcceptance
 )
+from matches.api.models import TeamMembership
 from matches.models import Team
 from matches.services.memberships import set_current_team, clear_current_team
 
@@ -24,6 +25,18 @@ def validate_document(doc_type_obj, doc_number):
     return num
 
 
+class TeamMembershipSerializer(serializers.ModelSerializer):
+    team = serializers.SlugRelatedField(slug_field="name", read_only=True)
+    is_current = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TeamMembership
+        fields = ("team", "date_from", "date_to", "is_current")
+
+    def get_is_current(self, obj):
+        return obj.date_to is None
+
+
 # --------- User (lectura) ----------
 class UserSerializer(serializers.ModelSerializer):
     document_type = serializers.SlugRelatedField(slug_field="code", read_only=True)
@@ -32,6 +45,7 @@ class UserSerializer(serializers.ModelSerializer):
     position = serializers.SlugRelatedField(slug_field="name", read_only=True)
     dominant_foot = serializers.SlugRelatedField(slug_field="name", read_only=True)
     team = serializers.SlugRelatedField(slug_field="name", read_only=True)
+    team_history = TeamMembershipSerializer(source="team_memberships", many=True, read_only=True)
 
     class Meta:
         model = User
@@ -41,6 +55,7 @@ class UserSerializer(serializers.ModelSerializer):
             "document_type", "document_number",
             "city", "district", "photo",
             "position", "dominant_foot", "team",
+            "team_history",
             "marketing_opt_in"
         )
 
@@ -72,7 +87,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         queryset=TermsAndConditions.objects.filter(is_active=True, section="register"),
         write_only=True
     )
-
     team_id = serializers.PrimaryKeyRelatedField(
         queryset=Team.objects.filter(is_active=True), source="team",
         required=False, allow_null=True

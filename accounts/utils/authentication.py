@@ -12,16 +12,18 @@ User = get_user_model()
 
 
 class DeviceTokenAuthentication(BaseAuthentication):
-    keyword = b"Bearer"
+    keyword = "Bearer"  # puede ser str
 
-    def authenticate(self, request) -> Optional[Tuple[User, None]]:
+    def authenticate(self, request):
         auth = get_authorization_header(request).split()
-        if not auth:
+        if not auth or auth[0].lower() != b"bearer":
             return None
-        if auth[0].lower() != self.keyword.lower() or len(auth) != 2:
-            return None
+
+        if len(auth) != 2:
+            raise exceptions.AuthenticationFailed("Authorization header inválido")
 
         token = auth[1].decode("utf-8")
+
         try:
             st = SessionToken.objects.select_related("user").get(token=token)
         except SessionToken.DoesNotExist:
@@ -30,6 +32,8 @@ class DeviceTokenAuthentication(BaseAuthentication):
         if not st.user.is_active:
             raise exceptions.AuthenticationFailed("Usuario inactivo")
 
-        # marcar actividad
         SessionToken.objects.filter(pk=st.pk).update(last_seen=timezone.now())
-        return (st.user, None)
+        return (st.user, st)
+
+    def authenticate_header(self, request):
+        return "Bearer"
