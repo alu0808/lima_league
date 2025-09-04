@@ -1,6 +1,7 @@
 # accounts/views.py
 from django.contrib.auth import get_user_model
-from rest_framework import status, permissions
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -9,16 +10,17 @@ from accounts.models import (
 )
 from accounts.services.sessions import logout_by_token, logout_all, upsert_session
 from config.responses import created, ok, error
-from matches.api.models import Team, TeamMembership
+from matches.api.models import Team
 from .serializers import (
     RegisterSerializer, UserSerializer, ChangePasswordSerializer, ProfileUpdateSerializer, LoginByDocumentSerializer
 )
+from ..utils.authentication import DeviceTokenAuthentication
 
 User = get_user_model()
 
 
 class RegisterView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         s = RegisterSerializer(data=request.data, context={"request": request})
@@ -31,7 +33,7 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         ser = LoginByDocumentSerializer(data=request.data)
@@ -42,19 +44,33 @@ class LoginView(APIView):
         return ok({"access": access, "device_id": device_id}, message="Login exitoso")
 
 
-# ---------- PERFIL (reemplaza MeView) ----------
-class EditDataView(APIView):
+class ProfileDataView(APIView):
+    authentication_classes = [DeviceTokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
-        return ok(UserSerializer(request.user).data, message="Perfil")
+        user = (User.objects
+                .select_related("document_type", "city", "district", "position", "dominant_foot", "team")
+                .prefetch_related("team_memberships__team")
+                .get(pk=request.user.pk))
+        return ok(UserSerializer(user).data, message="Perfil")
 
     def patch(self, request):
         s = ProfileUpdateSerializer(request.user, data=request.data, partial=True)
         s.is_valid(raise_exception=True)
         s.save()
-        return ok(UserSerializer(request.user).data, message="Perfil actualizado")
+
+        user = (User.objects
+                .select_related("document_type", "city", "district", "position", "dominant_foot", "team")
+                .prefetch_related("team_memberships__team")
+                .get(pk=request.user.pk))
+        return ok(UserSerializer(user).data, message="Perfil actualizado")
 
 
 class ChangePasswordView(APIView):
+    authentication_classes = [DeviceTokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         ser = ChangePasswordSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -68,6 +84,9 @@ class ChangePasswordView(APIView):
 
 # ---------- LOGOUTS ----------
 class LogoutView(APIView):
+    authentication_classes = [DeviceTokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         auth = request.META.get("HTTP_AUTHORIZATION", "")
         if not auth.startswith("Bearer "):
@@ -81,6 +100,9 @@ class LogoutView(APIView):
 
 
 class LogoutAllView(APIView):
+    authentication_classes = [DeviceTokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         payload = logout_all(request.user)
         return Response(payload, status=status.HTTP_200_OK)
@@ -92,7 +114,7 @@ class RegistrationCatalogView(APIView):
     Devuelve catálogos para la pantalla de registro (excepto distritos, que se carga por city).
     GET /catalogs/registration
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         latest_terms = TermsAndConditions.objects.filter(is_active=True, section="register").order_by(
@@ -119,7 +141,7 @@ class DistrictsByCityView(APIView):
     """
     GET /catalogs/districts?city_id=#
     """
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         try:
@@ -129,20 +151,3 @@ class DistrictsByCityView(APIView):
 
         qs = District.objects.filter(city_id=city_id, is_active=True).order_by("id")
         return Response([{"id": d.id, "name": d.name} for d in qs])
-
-
-class MyTeamHistoryView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request):
-        qs = (TeamMembership.objects
-              .select_related("team")
-              .filter(user=request.user)
-              .order_by("-date_from", "-id"))
-        data = [{
-            "team": m.team.name,
-            "date_from": m.date_from.isoformat(),
-            "date_to": m.date_to.isoformat() if m.date_to else None,
-            "is_current": m.date_to is None
-        } for m in qs]
-        return ok(data, message="Historial de equipos")

@@ -3,7 +3,7 @@ from django.urls import path
 
 from accounts.api.views import (
     RegisterView, LoginView, LogoutView, LogoutAllView,
-    ChangePasswordView, EditDataView, RegistrationCatalogView, DistrictsByCityView, MyTeamHistoryView
+    ChangePasswordView, ProfileDataView, RegistrationCatalogView, DistrictsByCityView, ProfileDataView
 )
 
 urlpatterns = [
@@ -12,11 +12,8 @@ urlpatterns = [
     path("auth/logout", LogoutView.as_view(), name="auth-logout"),
     path("auth/logout-all", LogoutAllView.as_view(), name="auth-logout-all"),
 
-    path("profile", EditDataView.as_view(), name="profile-edit"),
+    path("profile", ProfileDataView.as_view(), name="profile-edit"),
     path("profile/change-password", ChangePasswordView.as_view(), name="profile-change-password"),
-
-    path("profile/teams", MyTeamHistoryView.as_view(), name="profile-teams"),
-
     path("catalogs/registration", RegistrationCatalogView.as_view(), name="catalogs-registration"),
     path("catalogs/districts", DistrictsByCityView.as_view(), name="catalogs-districts"),
 ]
