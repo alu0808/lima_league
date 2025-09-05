@@ -1,6 +1,7 @@
 # matches/views.py
 from datetime import timedelta
 
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -30,13 +31,15 @@ class UpcomingMatchesView(APIView):
 class MatchDetailView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request, match_id: int):
-        try:
-            m = (Match.objects
-                 .select_related("location", "location__district")
-                 .prefetch_related("faqs", "recommendations")
-                 .get(pk=match_id))
-        except Match.DoesNotExist:
+    def get(self, request, match_identifier):
+        m = (
+            Match.objects
+            .select_related("location", "location__district")
+            .prefetch_related("faqs", "recommendations")
+            .filter(match_identifier=match_identifier)
+            .first()
+        )
+        if not m:
             return error("Match not found", status_code=status.HTTP_404_NOT_FOUND)
         data = UpcomingMatchSerializer(m).data
         return ok(data, message="Match")
@@ -46,9 +49,10 @@ class JoinMatchView(APIView):
     authentication_classes = [DeviceTokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, match_id: int):
+    def post(self, request, match_identifier):
+        m = get_object_or_404(Match, match_identifier=match_identifier)
         try:
-            payload = join_match(request.user, match_id)
+            payload = join_match(request.user, m.id)
         except Exception as e:
             return error(str(e), status_code=status.HTTP_400_BAD_REQUEST)
         return ok(payload, message="Joined")
@@ -58,9 +62,10 @@ class LeaveMatchView(APIView):
     authentication_classes = [DeviceTokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, match_id: int):
+    def post(self, request, match_identifier):
+        m = get_object_or_404(Match, match_identifier=match_identifier)
         try:
-            payload = leave_match(request.user, match_id)
+            payload = leave_match(request.user, m.id)
         except Exception as e:
             return error(str(e), status_code=status.HTTP_400_BAD_REQUEST)
         return ok(payload, message="Left")

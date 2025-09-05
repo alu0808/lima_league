@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
@@ -77,6 +79,7 @@ class MatchStatus(models.TextChoices):
 
 class Match(models.Model):
     """Partido/pichanga."""
+    match_identifier = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="matches")
 
     title = models.CharField(max_length=180, blank=True)  # "Lawn tennis sport"

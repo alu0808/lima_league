@@ -65,6 +65,7 @@ class PlayerMiniSerializer(serializers.ModelSerializer):
 
 
 class UpcomingMatchSerializer(serializers.ModelSerializer):
+    match_identifier = serializers.UUIDField(read_only=True)
     place = LocationSerializer(source="location")
     date = serializers.SerializerMethodField()
     day = serializers.SerializerMethodField()
@@ -80,7 +81,7 @@ class UpcomingMatchSerializer(serializers.ModelSerializer):
     class Meta:
         model = Match
         fields = (
-            "id",
+            "id", "match_identifier",
             "place",
             "date", "day", "date_tag", "time",
             "button_text",
