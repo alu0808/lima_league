@@ -54,6 +54,7 @@ INSTALLED_APPS = [
 
     # locales
     "matches",
+    "promos",
     "payments",
     "accounts",
 ]
@@ -108,12 +109,11 @@ if DATABASE_URL:
     db_cfg["OPTIONS"]["options"] = "-c timezone=UTC"
     DATABASES = {"default": db_cfg}
 
-
 MERCADOPAGO_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
 MERCADOPAGO_WEBHOOK_SECRET = os.getenv("MP_WEBHOOK_SECRET", default=None)
-#FRONT_SUCCESS_URL = os.getenv("FRONT_SUCCESS_URL", default="")
-#FRONT_FAILURE_URL = os.getenv("FRONT_FAILURE_URL", default="")
-#FRONT_PENDING_URL = os.getenv("FRONT_PENDING_URL", default="")
+# FRONT_SUCCESS_URL = os.getenv("FRONT_SUCCESS_URL", default="")
+# FRONT_FAILURE_URL = os.getenv("FRONT_FAILURE_URL", default="")
+# FRONT_PENDING_URL = os.getenv("FRONT_PENDING_URL", default="")
 FRONT_BASE_URL = os.getenv("FRONT_BASE_URL", default=None)
 FRONT_MATCH_ROUTE = os.getenv("FRONT_MATCH_ROUTE", default=None)
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL")
