@@ -7,6 +7,25 @@ def mp_sdk():
     return mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
 
 
+def _build_back_urls_for_match(match):
+    """
+    Construye back_urls dinámicos:
+    success/failure/pending -> {FRONT_BASE_URL}/{FRONT_MATCH_ROUTE}/{match_identifier}
+    """
+    base = getattr(settings, "FRONT_BASE_URL", "").rstrip("/")
+    route = getattr(settings, "FRONT_MATCH_ROUTE", "/partido").strip("/")
+
+    if not base:
+        return None  # sin base, no seteamos back_urls (MP no exige si no pones auto_return)
+
+    base_match_url = f"{base}/{route}/{match.match_identifier}"
+    return {
+        "success": base_match_url,
+        "failure": base_match_url,
+        "pending": base_match_url,
+    }
+
+
 def create_preference_for_match(payment, match, user, notify_url: str):
     sdk = mp_sdk()
     ext_ref = str(payment.public_id)
@@ -26,14 +45,12 @@ def create_preference_for_match(payment, match, user, notify_url: str):
         "external_reference": ext_ref
     }
 
-    success = getattr(settings, "FRONT_SUCCESS_URL", "")
-    if success:  # solo si hay success definido
-        data["back_urls"] = {
-            "success": settings.FRONT_SUCCESS_URL,
-            "failure": getattr(settings, "FRONT_FAILURE_URL", success),
-            "pending": getattr(settings, "FRONT_PENDING_URL", success),
-        }
-        data["auto_return"] = "approved"  # <-- SOLO si hay success
+    # back_urls dinámicos por match_identifier
+    back_urls = _build_back_urls_for_match(match)
+    if back_urls:
+        data["back_urls"] = back_urls
+        # auto_return requiere back_urls.success definido
+        data["auto_return"] = "approved"
 
     if notify_url:
         data["notification_url"] = notify_url
