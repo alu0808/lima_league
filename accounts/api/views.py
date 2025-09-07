@@ -38,10 +38,27 @@ class LoginView(APIView):
     def post(self, request):
         ser = LoginByDocumentSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
+
         user = ser.validated_data["user"]
         device_id = ser.validated_data["device_id"]
+
+        # emitir/actualizar sesión
         access = upsert_session(user=user, device_id=device_id, request=request)
-        return ok({"access": access, "device_id": device_id}, message="Login exitoso")
+
+        # hidratar usuario con relaciones para serializarlo completo (como en ProfileDataView)
+        user_full = (
+            User.objects
+            .select_related("document_type", "city", "district", "position", "dominant_foot", "team")
+            .prefetch_related("team_memberships__team")
+            .get(pk=user.pk)
+        )
+
+        payload = {
+            "access": access,
+            "device_id": device_id,
+            "user": UserSerializer(user_full).data,
+        }
+        return ok(payload, message="Login exitoso")
 
 
 class ProfileDataView(APIView):
