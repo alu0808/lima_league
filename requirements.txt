@@ -8,3 +8,4 @@ django-cors-headers>=4.4
 drf-spectacular>=0.27
 gunicorn
 whitenoise
+mercadopago==2.3.0

@@ -35,14 +35,7 @@ ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1") if DEBUG else e
 # CSRF_TRUSTED_ORIGINS:
 # - Prod: **debe** contener orígenes completos con https, ej: "https://web-production-d48a.up.railway.app"
 # - Dev: por defecto habilita http://localhost:8000 y http://127.0.0.1:8000
-_csrf_env = env_list("CSRF_TRUSTED_ORIGINS")
-if _csrf_env:
-    CSRF_TRUSTED_ORIGINS = _csrf_env
-else:
-    CSRF_TRUSTED_ORIGINS = (
-        ["http://localhost:8000", "http://127.0.0.1:8000"] if DEBUG
-        else [f"https://{h}" for h in ALLOWED_HOSTS if h and h not in {"localhost", "127.0.0.1", "*"}]
-    )
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", default="http://localhost:8000,http://127.0.0.1:8000")
 
 # -----------------------------
 # Apps
@@ -61,6 +54,7 @@ INSTALLED_APPS = [
 
     # locales
     "matches",
+    "payments",
     "accounts",
 ]
 
@@ -95,6 +89,7 @@ TEMPLATES = [{
 
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
+USE_X_FORWARDED_HOST = True
 
 # -----------------------------
 # Base de Datos
@@ -110,9 +105,16 @@ if DATABASE_URL:
         ssl_require=not DEBUG,
     )
     db_cfg.setdefault("OPTIONS", {})
-    # 🔁 pon la sesión de Postgres en UTC (o elimina esta línea)
     db_cfg["OPTIONS"]["options"] = "-c timezone=UTC"
     DATABASES = {"default": db_cfg}
+
+
+MERCADOPAGO_ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
+MERCADOPAGO_WEBHOOK_SECRET = os.getenv("MP_WEBHOOK_SECRET", default=None)
+FRONT_SUCCESS_URL = os.getenv("FRONT_SUCCESS_URL", default="")
+FRONT_FAILURE_URL = os.getenv("FRONT_FAILURE_URL", default="")
+FRONT_PENDING_URL = os.getenv("FRONT_PENDING_URL", default="")
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL")
 
 # -----------------------------
 # Usuario / DRF / JWT
