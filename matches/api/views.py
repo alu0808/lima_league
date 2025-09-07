@@ -12,6 +12,7 @@ from config.responses import ok, error
 from matches.api.models import Match, MatchStatus
 from matches.api.serializers import UpcomingMatchSerializer
 from matches.services.enrollments import join_match, leave_match
+from payments.api.models import Payment, PaymentStatus
 
 
 class UpcomingMatchesView(APIView):
@@ -51,6 +52,15 @@ class JoinMatchView(APIView):
 
     def post(self, request, match_identifier):
         m = get_object_or_404(Match, match_identifier=match_identifier)
+
+        # Bloquea join si el usuario no tiene pago aprobado
+        has_payment = Payment.objects.filter(
+            user=request.user, match=m, status=PaymentStatus.APPROVED
+        ).exists()
+
+        if not has_payment:
+            return error("Payment required", status_code=status.HTTP_402_PAYMENT_REQUIRED)
+
         try:
             payload = join_match(request.user, m.id)
         except Exception as e:
