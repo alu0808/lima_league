@@ -57,7 +57,7 @@ class PlayerMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "full_name", "position", "dominant_foot", "photo")
+        fields = ("id", "document_type", "document_number", "full_name", "position", "dominant_foot", "photo")
 
     def get_full_name(self, obj):
         return f"{(obj.first_name or '').strip()} {(obj.last_name or '').strip()}".strip() or obj.email
