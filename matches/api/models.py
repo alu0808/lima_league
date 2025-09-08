@@ -146,6 +146,9 @@ class Enrollment(models.Model):
         indexes = [
             models.Index(fields=["match", "is_active"]),
             models.Index(fields=["user", "is_active"]),
+            models.Index(fields=["match", "joined_at"]),
         ]
+
+        ordering = ["-joined_at"]
 
     def __str__(self): return f"{self.user_id} -> {self.match_id} ({'active' if self.is_active else 'cancelled'})"

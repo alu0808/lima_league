@@ -125,8 +125,10 @@ class UpcomingMatchSerializer(serializers.ModelSerializer):
         return {"recommendations": list(obj.recommendations.values_list("text", flat=True))}
 
     def get_registered_players(self, obj):
-        users = (User.objects
-                 .filter(match_enrollments__match=obj, match_enrollments__is_active=True)
-                 .select_related("position", "dominant_foot")
-                 .distinct())
+        users = (
+            User.objects
+            .filter(match_enrollments__match=obj, match_enrollments__is_active=True)
+            .select_related("position", "dominant_foot")
+            .order_by("-match_enrollments__joined_at", "-match_enrollments__id")
+        )
         return PlayerMiniSerializer(users, many=True).data
