@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     # locales
     "matches",
     "promos",
+    "stats",
     "payments",
     "accounts",
 ]

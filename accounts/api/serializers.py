@@ -12,6 +12,8 @@ from accounts.models import (
 from matches.api.models import TeamMembership
 from matches.models import Team
 from matches.services.memberships import set_current_team, clear_current_team
+from stats.api.models import PlayerMatchStat
+from stats.api.serializers import StatsSummarySerializer
 
 User = get_user_model()
 
@@ -46,6 +48,7 @@ class UserSerializer(serializers.ModelSerializer):
     dominant_foot = serializers.SlugRelatedField(slug_field="name", read_only=True)
     team = serializers.SlugRelatedField(slug_field="name", read_only=True)
     team_history = TeamMembershipSerializer(source="team_memberships", many=True, read_only=True)
+    stats_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -56,8 +59,14 @@ class UserSerializer(serializers.ModelSerializer):
             "city", "district", "photo",
             "position", "dominant_foot", "team",
             "team_history",
-            "marketing_opt_in"
+            "marketing_opt_in",
+            "stats_summary",
         )
+
+    def get_stats_summary(self, obj):
+        qs = PlayerMatchStat.objects.filter(user=obj)
+        # Devuelve: {"matches": N, "wins": N, "goals": N, "mvps": N}
+        return StatsSummarySerializer.from_queryset(qs)
 
 
 # --------- Registro (pantalla 1) ----------
