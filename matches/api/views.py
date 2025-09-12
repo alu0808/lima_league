@@ -15,6 +15,52 @@ from matches.services.enrollments import join_match, leave_match
 from payments.api.models import Payment, PaymentStatus
 
 
+class MatchesBoardView(APIView):
+    """
+    GET /api/matches/board
+    - public_upcoming: publicados y futuros (para todos)
+    - my_upcoming: próximos donde el usuario está inscrito (si está autenticado)
+    - my_past: pasados donde el usuario está inscrito (si está autenticado)
+    """
+    authentication_classes = [DeviceTokenAuthentication]
+    permission_classes = [AllowAny]  # permite anónimo; si llega token, incluimos secciones "my"
+
+    def get(self, request):
+        now = timezone.now() - timedelta(hours=5)
+
+        base = (
+            Match.objects
+            .select_related("location", "location__district")
+            .prefetch_related("faqs", "recommendations")
+        )
+
+        # Público (upcoming)
+        public_qs = (
+            base.filter(status=MatchStatus.PUBLISHED, start_at__gt=now)
+            .order_by("start_at")
+        )
+
+        # Secciones del usuario (si está autenticado)
+        my_upcoming_qs = Match.objects.none()
+        my_past_qs = Match.objects.none()
+
+        if getattr(request, "user", None) and request.user.is_authenticated:
+            mine = (
+                base.filter(enrollments__user=request.user,
+                            enrollments__is_active=True)
+                .distinct()
+            )
+            my_upcoming_qs = mine.filter(start_at__gt=now).order_by("start_at")
+            my_past_qs = mine.filter(start_at__lte=now).order_by("-start_at")
+
+        payload = {
+            "public_upcoming": UpcomingMatchSerializer(public_qs, many=True).data,
+            "my_upcoming": UpcomingMatchSerializer(my_upcoming_qs, many=True).data,
+            "my_past": UpcomingMatchSerializer(my_past_qs, many=True).data,
+        }
+        return ok(payload, message="Matches board")
+
+
 class UpcomingMatchesView(APIView):
     permission_classes = [AllowAny]
 
