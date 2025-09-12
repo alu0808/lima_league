@@ -53,6 +53,13 @@ class MatchesBoardView(APIView):
             my_upcoming_qs = mine.filter(start_at__gt=now).order_by("start_at")
             my_past_qs = mine.filter(start_at__lte=now).order_by("-start_at")
 
+            # Evita que un partido en el que ya estoy inscrito
+            #    aparezca también en el listado público
+            public_qs = public_qs.exclude(
+                enrollments__user=request.user,
+                enrollments__is_active=True
+            )
+
         payload = {
             "public_upcoming": UpcomingMatchSerializer(public_qs, many=True).data,
             "my_upcoming": UpcomingMatchSerializer(my_upcoming_qs, many=True).data,
